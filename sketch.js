@@ -1,102 +1,91 @@
-// Abstract Clock - A creative visualization of time
-// Hours: Outer ring color gradient (12-hour format)
-// Minutes: Middle circle size
-// Seconds: Inner circle rotation
+let lastLoggedMinute = null;
 
-let lastMinute = -1;
-let centerX, centerY;
+let xH_cur = null;
+let xM_cur = null;
+let xS_cur = null;
 
 function setup() {
-    createCanvas(800, 800);
-    centerX = width / 2;
-    centerY = height / 2;
-    colorMode(HSB, 360, 100, 100); // Use HSB color mode for smooth color transitions
+  createCanvas(800, 600);
+  angleMode(RADIANS);
+  textFont("system-ui");
 }
 
 function draw() {
-    // Get time values
-    let hr = hour() % 12; // Convert to 12-hour format (0-11)
-    let min = minute();
-    let sec = second();
-    
-    // Print minute value when it changes
-    if (min !== lastMinute) {
-        console.log("Minute:", min);
-        lastMinute = min;
-    }
-    
-    // Map time values to proportions (0-1)
-    let hrProportion = hr / 12; // 0-1
-    let minProportion = min / 60; // 0-1
-    let secProportion = sec / 60; // 0-1
-    
-    // Background gradient based on hour
-    let bgHue = map(hrProportion, 0, 1, 200, 280); // Blue to purple gradient
-    background(bgHue, 20, 95);
-    
-    // Draw outer ring for HOURS (color changes)
-    push();
-    translate(centerX, centerY);
-    
-    // Outer ring - represents hours through color
-    let hourHue = map(hrProportion, 0, 1, 0, 360); // Full color spectrum
-    let hourSaturation = map(hrProportion, 0, 1, 60, 100);
-    let hourBrightness = map(hrProportion, 0, 1, 70, 90);
-    
-    noFill();
-    stroke(hourHue, hourSaturation, hourBrightness);
-    strokeWeight(20);
-    let outerRadius = 300;
-    arc(0, 0, outerRadius * 2, outerRadius * 2, 0, TWO_PI * hrProportion);
-    
-    // Middle circle for MINUTES (size changes)
-    let minSize = map(minProportion, 0, 1, 100, 250); // Size from 100 to 250
-    fill(hourHue, 40, 80, 0.6);
-    noStroke();
-    ellipse(0, 0, minSize, minSize);
-    
-    // Inner circle for SECONDS (rotation)
-    push();
-    rotate(TWO_PI * secProportion); // Rotate based on seconds
-    fill(360 - hourHue, 80, 90, 0.8); // Complementary color
-    ellipse(0, 0, 80, 80);
-    
-    // Add a small indicator line for seconds
-    stroke(360 - hourHue, 100, 100);
-    strokeWeight(3);
-    line(0, 0, 0, -40);
-    pop();
-    
-    // Add subtle hour markers
-    stroke(hourHue, 30, 50, 0.3);
-    strokeWeight(2);
-    for (let i = 0; i < 12; i++) {
-        let angle = (TWO_PI / 12) * i;
-        let x1 = cos(angle) * (outerRadius - 10);
-        let y1 = sin(angle) * (outerRadius - 10);
-        let x2 = cos(angle) * (outerRadius + 10);
-        let y2 = sin(angle) * (outerRadius + 10);
-        line(x1, y1, x2, y2);
-    }
-    
-    // Add minute indicator dots
-    noStroke();
-    fill(hourHue, 60, 70, 0.5);
-    for (let i = 0; i < 60; i += 5) {
-        let angle = (TWO_PI / 60) * i;
-        let radius = outerRadius - 30;
-        let x = cos(angle) * radius;
-        let y = sin(angle) * radius;
-        ellipse(x, y, 4, 4);
-    }
-    
-    pop();
-    
-    // Add subtle text hint in corner (optional, for clarity)
-    push();
-    fill(0, 0, 30, 0.3);
-    textSize(14);
-    textAlign(LEFT, TOP);
-    text("Hours: Outer ring color\nMinutes: Middle circle size\nSeconds: Inner circle rotation", 20, 20);
-    pop();
+  const now = new Date();
+  const hr = now.getHours();
+  const min = now.getMinutes();
+  const sec = now.getSeconds();
+  const ms = now.getMilliseconds();
+
+  if (lastLoggedMinute === null || min !== lastLoggedMinute) {
+    console.log(min);
+    lastLoggedMinute = min;
+  }
+
+  const secSmooth = sec + ms / 1000;
+  const minSmooth = min + secSmooth / 60;
+  const hr12Smooth = (hr % 12) + minSmooth / 60;
+
+  const hourP = hr12Smooth / 12;
+  const minP = minSmooth / 60;
+  const secP = secSmooth / 60;
+
+  background(255);
+
+  const railY = height * 0.62;
+  const left = 90;
+  const right = width - 90;
+
+  const dH = 56;
+  const dM = 36;
+  const dS = 18;
+
+  const yH = railY;
+  const yM = railY - 8;
+  const yS = railY + 8;
+
+  const xH_t = lerp(left + dH / 2, right - dH / 2, hourP);
+  const xM_t = lerp(left + dM / 2, right - dM / 2, minP);
+  const xS_t = lerp(left + dS / 2, right - dS / 2, secP);
+
+  if (xH_cur === null) {
+    xH_cur = xH_t;
+    xM_cur = xM_t;
+    xS_cur = xS_t;
+  }
+
+  xH_cur = lerp(xH_cur, xH_t, 0.08);
+  xM_cur = lerp(xM_cur, xM_t, 0.18);
+  xS_cur = lerp(xS_cur, xS_t, 0.35);
+
+  stroke(0);
+  strokeWeight(2);
+  line(left, railY, right, railY);
+
+  strokeWeight(4);
+  point(left, railY);
+  point(right, railY);
+
+  drawBall(xH_cur, yH, dH, 0, 0.010, 0);
+  drawBall(xM_cur, yM, dM, 40, 0.040, 1);
+  drawBall(xS_cur, yS, dS, 90, 0.120, 2);
+
+  noStroke();
+  fill(0, 90);
+  textSize(12);
+  textAlign(LEFT, CENTER);
+  text("big = hour   medium = minute   small = second", left, height - 24);
+}
+
+function drawBall(x, y, d, gray, rotSpeed, phase) {
+  noStroke();
+  fill(gray);
+  circle(x, y, d);
+  const a = frameCount * rotSpeed + phase;
+  const r = d * 0.22;
+  const hx = x + r * cos(a);
+  const hy = y + r * sin(a);
+
+  fill(255);
+  circle(hx, hy, max(3, d * 0.12));
 }
